@@ -1,161 +1,177 @@
-# Content Guide
+# Content guide
 
-**You now edit the site in the CMS — no code or JSON files.**
-Open `/studio` (after the one-time setup in [CMS_SETUP.md](CMS_SETUP.md)), sign in, pick a section in the left menu, edit with forms, and press **Publish**.
+This guide explains where each piece of content lives and how to change it. It separates two storage locations:
 
-## Studio → what it controls
-Tabs across the top: **Overview** (landing screen), **Content** (sidebar of everything), **Preview** (drafts on the real site), **Vision** (advanced queries).
+- **Sanity (the CMS)** — the live source once the dataset has been seeded. Edit in the Studio at `/studio`. No code changes, no deployment needed (the site updates within about five minutes, or immediately with the webhook).
+- **Local files in `data/`** — the typed fallback and the seed source. They are used when Sanity is not configured or the dataset has not been seeded. **After seeding, editing `data/` does not change the live site.**
 
-| Content → … | Website |
-| --- | --- |
-| Identity & site → Home & profile | Home hero (headline, introduction, four focus entry points, photo, stats), About, email, location, coursework |
-| Identity & site → Site settings | SEO title/description/keywords, header navigation, footer text and links |
-| Identity & site → Resume (PDF upload) | All "Download resume" buttons |
-| Identity & site → Professional links | About, Contact, Research profiles, footer (IEEE, Scholar, GitHub, Zenodo…) |
-| Discipline pages → Engineering / Applied AI / Data & ML page | Page title, tagline, introduction, selected projects, toolbox |
-| Discipline pages → Capability themes | The evidence rows on those pages (choose which page each appears on; link projects and roles) |
-| Discipline pages → Skills | Toolbox categories |
-| Projects | Directory + case studies (views: ordered, browse & sort, featured, in progress, live, by category) |
-| Research & publications | /research (views by type) |
-| Experience | /experience and the "Currently" block on Home |
-| Education & credentials | /education: degrees, certifications, achievements |
-| Writing | /writing and /writing/<slug> |
+The rule the code applies: if the dataset contains a `profile` document, the site reads from Sanity. Otherwise it reads `data/`. Run `npm run cms:doctor` to see which is in use.
 
-## How-tos
-- **Reorder:** in list screens (Experience, Projects, Skills…) drag rows up/down. Inside a document, drag array items (highlights, skills, links).
-- **Add a project:** Projects → **+** → fill Title, Slug (click *Generate*), Category, Summary → add Highlights/Technologies → write-up → upload screenshots (add alt text) → add GitHub / live demo links → **Publish**. Tick *Featured* to show it under the Featured tab.
-- **Add a publication:** Research & publications → **+** → choose Type, paste the exact title, authors, venue, year and **DOI** (bare DOI, e.g. `10.1016/j.csbj.2025.10.063`; the link is built for you).
-- **Add a job:** Experience → **+**; it appears at the end — drag it to the top for newest-first.
-- **Add an article:** Articles → **+** → title, slug, summary, date → write the text (headings, lists, links, images) — it appears at `/writing/<slug>`. Or fill *External URL* to link elsewhere.
-- **Replace the resume:** Resume (PDF upload) → upload → Publish.
-- **Change the biography / headline:** Profile & introduction.
-- **Change navigation:** Site settings → Header navigation (pick the page and the label; order = menu order).
-- **Delete anything:** open the document → **⋯** menu → Delete.
-- **Preview first:** open the **Preview** tab to see unpublished changes on the real pages.
-- Rule of thumb: **never enter a title, date, metric or URL you haven't confirmed.** To pull exact paper metadata: `https://api.crossref.org/works/<doi>`.
+## Where each kind of content lives
 
----
+| Content | Edit in | Local file (fallback / seed) |
+| --- | --- | --- |
+| Name, headline, introduction, biography, focus areas, domains, stats, location, availability, email, photo, coursework | Studio → Identity & site → Home & profile | `data/profile.ts`, `data/education.ts` (coursework) |
+| Site title, description, keywords, header navigation, footer text and footer links | Studio → Identity & site → Site settings | `data/site.ts`, `data/site.ts` (`navItems`) |
+| Resume download | Studio → Identity & site → Resume (PDF upload) | `public/documents/Naga_Sekhar_Madala_Resume.pdf` |
+| Professional links (profiles, code, demos, publications) | Studio → Identity & site → Professional links | `data/links.ts` |
+| Engineering, Applied AI, Data & ML page text and selected projects | Studio → Discipline pages → (page) | `data/disciplines.ts` |
+| Capability themes (evidence on discipline pages) | Studio → Discipline pages → Capability themes | `data/capabilities.ts` |
+| Skills and toolbox | Studio → Discipline pages → Skills | `data/skills.ts` |
+| Projects and case studies | Studio → Projects | `data/projects.ts` |
+| Project categories | Studio → Projects → By category / Categories | `data/projects.ts` (`projectCategories`) |
+| Work experience | Studio → Experience | `data/experience.ts` |
+| Publications, datasets, books, patents | Studio → Research & publications | `data/research.ts`, `data/publications.ieee.ts` |
+| Education, certifications, achievements | Studio → Education & credentials | `data/education.ts`, `data/certifications.ts`, `data/achievements.ts` |
+| Articles | Studio → Writing | `data/articles.ts` (currently empty) |
+| Public route labels for the menu and footer | **code only** | `data/routes.ts` |
+| Link group titles on the About and Research pages | **code only** | `data/links.ts` (`linkGroups`) |
 
-# Developer reference: the `/data` files
+Content maintained only in code: `data/routes.ts` and the group titles in `data/links.ts`. Changing them is a code change (see CLAUDE.md for the workflow).
 
-`/data` is still in the repo for two reasons: it is the **seed** for the CMS (`npm run cms:seed`) and the **automatic fallback** if the CMS is not configured or unreachable. After migration, edit content in the Studio, not here — edits to `/data` no longer change the live site once the dataset is seeded.
+Content that is not stored on the site: the contact form does not save messages. It opens the visitor's email app with a pre-filled message.
 
-## Map: what to edit
+## Sanity editing: the common tasks
 
-| I want to…                         | Edit                          |
-| ---------------------------------- | ----------------------------- |
-| Change bio, headline, stats, email, availability, photo | `data/profile.ts` |
-| Add / edit a job                   | `data/experience.ts`          |
-| Add / edit a project               | `data/projects.ts`            |
-| Update skills                      | `data/skills.ts`              |
-| Add a publication, paper, book, patent | `data/research.ts`        |
-| Add a certification                | `data/certifications.ts`      |
-| Add an achievement / award         | `data/achievements.ts`        |
-| Add a technical article            | `data/articles.ts`            |
-| Add / change professional links    | `data/links.ts`               |
-| Education and coursework           | `data/education.ts`           |
-| Site title, SEO description, resume file, navigation order | `data/site.ts` |
+### Add a job (Experience)
+1. Studio → **Experience** → **Create**.
+2. Fill in role, company, location, start and end (for example `Jan 2026` and `Present`), an optional note, a short context sentence, highlights and technologies.
+3. Put the newest job first (drag to reorder).
+4. Publish.
 
-## Add a job (`data/experience.ts`)
-Add an object at the **top** of the array (newest first):
+Highlights: the first three show by default. The rest expand behind "Show more". Write outcomes you can support with evidence. Do not invent figures.
+
+### Add a project
+1. Studio → **Projects** → **Create** (or Quick create → New project).
+2. Fill in:
+   - **Title** and **slug** (click *Generate*). The slug becomes the page address `/projects/<slug>`. Changing a slug changes the URL.
+   - **Category** — pick an existing project category.
+   - **Summary** — one sentence shown in lists.
+   - **Highlights** and **Technologies**.
+   - **Featured** — ticked projects appear in the Home page and the Featured filter.
+   - **Status** (Live or In Progress) and an optional **badge** line.
+3. On the **Write-up** tab, add a detailed description using rich text (headings, lists, links, images).
+4. On the **Images & links** tab, upload screenshots (alt text required) and add links such as GitHub or a live demo.
+5. Publish.
+
+Only link repositories and demos you own or are allowed to publish. Confirm each URL opens before publishing.
+
+### Edit the home page and biography
+Studio → **Home & profile**. The first biography paragraph is shown larger. The four **Areas of focus** on the home page each link to a discipline page through their `href`.
+
+### Change the header menu or footer
+Studio → **Site settings**:
+- **Header navigation:** each item has a page and a label. Order is the menu order. Pages available: About, Engineering, Applied AI, Data & ML, Projects, Research, Experience, Writing.
+- **Footer links:** pick professional links to show in the footer.
+- **SEO title and description:** used by search engines and social previews.
+
+### Add a publication
+1. Studio → **Research & publications** → **Create**.
+2. Choose the type (journal, conference, dataset, book, patent or research).
+3. Enter the **exact title** as published, the authors as printed (your name is highlighted automatically), venue, year, and the **DOI** (for example `10.xxxx/xxxxx`, without `https://doi.org/`). The DOI link is built for you.
+4. Add other links (for example a PDF or a repository) if you have verified them.
+5. Publish.
+
+Enter only details you have verified against the publisher's record or your own copy. To check metadata for a DOI, open `https://api.crossref.org/works/<doi>`.
+
+### Add a certification
+Studio → **Education & credentials → Certifications**. Add a group (for example "Cloud") and add items with the name and issuer. Create a new group for a new category.
+
+### Add an achievement or award
+Studio → **Education & credentials → Achievements**. Give it a title, optional detail and a year or date label.
+
+### Add or update skills
+Studio → **Discipline pages → Skills**. Each skill category has a title and a list of skills. The categories appear in the toolbox on the discipline pages that reference them.
+
+### Write an article
+1. Studio → **Writing** → **Create**.
+2. Enter title, slug, summary, publish date and where it appears (for example "This site").
+3. Either write the article body (rich text) for a hosted article at `/writing/<slug>`, or paste an **External URL** to link to an article hosted elsewhere. Do not fill both.
+4. Publish.
+
+Hosted articles appear on the Writing page and at their own address. External articles link out in a new tab.
+
+### Replace the resume
+Studio → **Resume (PDF upload)** → upload the file → Publish. Check the download from `/about` or `/contact` after publishing.
+
+### Preview before publishing
+Studio → **Preview**. It shows the site with your drafts. Requires the Viewer token (see CMS_SETUP.md §5 and §10).
+
+## Local `data/` files (developer reference)
+
+Use these only when you are editing the fallback or seed content, or when the site is not connected to Sanity. Every file exports typed arrays; the types are in `data/types.ts`.
+
+Examples of the shapes (abbreviated):
+
 ```ts
+// data/experience.ts — newest first
 {
-  id: "acme",                       // unique, lowercase, no spaces
+  id: "acme",                      // unique, lowercase, no spaces
   role: "Senior Software Engineer",
   company: "Acme Corp",
   location: "Atlanta, GA",
   start: "Mar 2027",
-  end: "Present",                   // and change the previous job's end date
-  context: "One sentence on what the company/team does.",
-  highlights: ["Outcome-first bullet…", "…"],   // first 3 show; the rest expand
+  end: "Present",
+  context: "One sentence about the team or company.",
+  highlights: ["Outcome-first bullet", "Another bullet"],
   tech: ["Python", "Kafka"],
 }
 ```
-To update responsibilities, edit the strings in `highlights`.
 
-## Add a project (`data/projects.ts`)
 ```ts
+// data/projects.ts
 {
-  id: "my-project",                 // becomes the URL: /projects/my-project
+  id: "my-project",                 // becomes /projects/my-project
   title: "My Project",
-  category: "AI Agents & LLMs",     // must be one of projectCategories (top of file)
-  featured: true,                   // optional: shows under the "Featured" tab
+  category: "AI Agents & LLMs",     // must be one of projectCategories in the same file
+  featured: true,
   status: "Live",                   // optional: "Live" | "In Progress"
-  badge: "Winner · Hackathon 2027", // optional highlighted line
-  summary: "One-sentence summary shown in the list.",
-  highlights: ["Metric-backed bullet", "Another"],
+  summary: "One-sentence summary.",
+  highlights: ["Metric-backed bullet"],
   tech: ["Python", "FastAPI"],
-  description: ["Optional longer paragraph.", "Another paragraph."],   // detail page
-  images: [
-    { src: "/images/projects/my-project-1.png", alt: "Dashboard showing …",
-      width: 1600, height: 900, caption: "Optional caption" },
-  ],
-  links: [
-    { label: "GitHub", href: "https://github.com/NagaSekhar23/my-project" },
-    { label: "Live demo", href: "https://my-project.vercel.app" },
-  ],
+  description: ["Optional longer paragraph."],
+  images: [{ src: "/images/projects/my-project-1.png", alt: "What the image shows", width: 1600, height: 900 }],
+  links: [{ label: "GitHub", href: "https://github.com/<owner>/my-project" }],
 }
 ```
-**Screenshots:** drop the file in `public/images/projects/`, then reference it as `/images/projects/<file>`. Use the file's real pixel `width`/`height` (any size; it scales). Always write meaningful `alt` text.
-To add a **new category**, add its name to `projectCategories`, then use it in a project.
 
-## Add a profile photo
-Save as `public/images/profile/naga.jpg` (portrait, ~4:5), then in `data/profile.ts`:
 ```ts
-photo: { src: "/images/profile/naga.jpg", alt: "Portrait of Naga Sekhar Madala", width: 1200, height: 1500 },
-```
-Remove the line to go back to the monogram placeholder.
-
-## Add a publication (`data/research.ts`)
-```ts
+// data/research.ts
 {
   id: "my-paper",
   type: "journal",                  // journal | conference | dataset | book | patent | research
   title: "Exact title",
-  authors: ["Author One", "Naga Sekhar Madala"],   // your name is bolded automatically
-  venue: "Journal or conference name",
+  authors: ["Author One", "Naga Sekhar Madala"],
+  venue: "Journal name",
   year: "2027",
-  date: "Jan 2027",                 // optional
-  doi: "10.xxxx/xxxxx",             // bare DOI; the doi.org link is built for you
-  links: [{ label: "PDF", href: "https://…" }],
+  doi: "10.xxxx/xxxxx",             // bare DOI
 }
 ```
-**Only enter titles, authors and dates you have confirmed from the publisher, DOI record or your own copy.** To pull exact metadata for a DOI: `https://api.crossref.org/works/<doi>`.
 
-## Add a certification (`data/certifications.ts`)
-Append `{ name: "…", issuer: "…" }` to a group's `items`, or add a new group object.
-
-## Add an achievement (`data/achievements.ts`)
-Append `{ id, title, detail?, year? }`.
-
-## Update skills (`data/skills.ts`)
-Add strings to a group's `skills`, or add a group `{ id, title, skills: [] }`.
-
-## Add an article (`data/articles.ts`)
 ```ts
-{ id: "my-article", title: "…", summary: "…", date: "2027-02-01",
-  publication: "Medium", href: "https://…", tags: ["LLM"] }
+// data/links.ts — group: research | publications | code | demos | writing
+{ id: "github", group: "code", label: "GitHub", mark: "GH", href: "https://github.com/<owner>", description: "Source code." }
 ```
-The "in preparation" message disappears automatically once the list has entries.
 
-## Professional links (`data/links.ts`)
-Append `{ id, group, label, href, description, mark }`.
-`group`: `research`, `publications`, `code`, `demos`, `writing`. `mark` is the short text badge (e.g. "GH", "IEEE").
-Research-group links also appear in the **Research profiles** block. External links open in a new tab automatically.
+```ts
+// data/profile.ts — discipline entry points use these hrefs
+disciplines: [{ title: "Software Engineering", description: "…", href: "/engineering" }, /* … */]
+```
 
-## Update contact details
-Email, location, availability: `data/profile.ts`. The contact form opens the visitor's email app pre-filled; nothing needs a server.
+Other files:
+- `data/skills.ts` — `skillGroups`: `{ id, title, skills: [] }`.
+- `data/certifications.ts` — `certificationGroups`: `{ id, title, items: [{ name, issuer? }] }`.
+- `data/achievements.ts` — `achievements`: `{ id, title, detail?, year? }`.
+- `data/articles.ts` — `articles`: `{ id, title, summary, date (YYYY-MM-DD), publication, href? or slug + body? }`.
+- `data/education.ts` — `education` and `coursework`.
+- `data/capabilities.ts` and `data/disciplines.ts` — discipline evidence and page copy.
+- `data/routes.ts` — public routes for the menu and footer (code-only content).
 
-## Change section order or names
-`navItems` in `data/site.ts` controls nav order and the section numbers. The visual order of sections on the page is set in `app/page.tsx` (keep them in the same order).
+After editing `data/`, run `npm run check`. The `cms:verify` step compares the CMS mapping with `data/`; if you have seeded, the comparison still runs against the seed documents built from `data/`.
 
-## Replace the resume
-Put the file in `public/documents/` and set `resumeHref` / `resumeLabel` in `data/site.ts`. See `REVIEW_FLAGS.md` about what the current file contains.
-
-## How the CMS plugs in
-All reads go through **`lib/content.ts`**: Sanity (via `sanity/lib/cms.ts`) when configured and seeded, otherwise `/data`. Schemas live in `sanity/schemaTypes/`. `npm run cms:verify` proves the Sanity pipeline returns exactly what `/data` contains.
-
-## Rules of thumb
-- Never invent employers, dates, metrics, publications or URLs. If unsure, leave it out and add a note in `REVIEW_FLAGS.md`.
-- Keep ids unique. Dates are plain display strings (except articles: ISO).
-- `npm run check && npm run build` before deploying.
+## Rules that apply to all content
+- Do not enter or publish details you cannot verify (titles, dates, metrics, publications, awards, URLs).
+- Do not add references to external profile networks that the owner has chosen not to link.
+- Do not include private contact details beyond what the owner has approved for publication.
+- Use the same spelling of your name everywhere.
+- Images need alt text that describes the image's content.

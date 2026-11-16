@@ -1,55 +1,98 @@
-# Deployment guide (GitHub + Vercel, free tier)
+# Deployment guide (GitHub → Vercel)
 
-Nothing here has been deployed. Follow these steps once you approve the final result.
+This guide describes how the site is published. Follow it in order. Nothing in this document deploys anything by itself.
 
-## 0. Blocker to resolve first: the repository
-This folder is currently inside a larger git repository (`/Users/madalanagasekhar`) whose remote is
-`NagaSekhar23/order-management-service`. Pushing from here would publish to the wrong project.
+## 1. Repository
+The project is a Git repository whose `origin` is a GitHub repository (see `git remote -v`). Before you push:
 
-Recommended: give the portfolio its own repository.
-1. Create an empty GitHub repository, e.g. `naga-portfolio` (free).
-2. In this folder run `git init -b main`, then check `git status` before staging anything.
-3. Stage only the project files; `.gitignore` already excludes `.env*`, `private/`, `node_modules/` and `.next/`.
-4. Commit, add the GitHub remote and push. Do this only after you approve.
+```bash
+git rev-parse --show-toplevel     # must print the project folder itself
+git status                        # review every change
+git log --oneline -3              # confirm the history you expect
+```
 
-## 1. Environment variables (Vercel → Project → Settings → Environment Variables)
-| Name | Value | Environments | Secret? |
+Rules:
+- Stage files explicitly (`git add <path>`). Do not use `git add .` until `git status` has been reviewed.
+- Never commit `.env.local`, `private/`, `.next/` or `node_modules/`. The `.gitignore` excludes them; confirm with `git check-ignore -v <path>`.
+- Never commit tokens or secrets. If one is committed, treat it as exposed (see TROUBLESHOOTING.md → GitHub).
+
+## 2. Local verification
+Before every push:
+```bash
+npm install
+npm run check
+npm run build
+npm start                         # optional: test the production build at http://localhost:3000
+```
+`npm run build` must finish with no warnings.
+
+## 3. Vercel project
+1. Sign in to vercel.com with your GitHub account (Hobby plan).
+2. **Add New → Project** → import the GitHub repository.
+3. Framework preset: **Next.js** (detected automatically).
+4. Build and output settings: keep the defaults.
+   - Install command: `npm install`
+   - Build command: `npm run build`
+   - Output: Next.js default
+5. Node.js version: 20.9 or newer. `package.json` declares this in `engines`.
+6. Do not deploy until the environment variables in section 4 are set (see section 4 for the order).
+
+## 4. Environment variables
+In the Vercel project: **Settings → Environment Variables**. Add each variable for **Production** (add **Preview** too if you want preview deployments to use Sanity).
+
+| Name | Value | Secret? | Notes |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | your custom domain, e.g. `https://your-domain.com` | Production, Preview | no |
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | `4665zgnk` | all | no |
-| `NEXT_PUBLIC_SANITY_DATASET` | `production` | all | no |
-| `SANITY_API_READ_TOKEN` | Viewer token (optional, enables draft Preview) | Production | **yes** |
-| `SANITY_REVALIDATE_SECRET` | the random value in `.env.local` | Production | **yes** |
+| `NEXT_PUBLIC_SITE_URL` | your domain, for example `https://your-domain.com` | no | Needed for correct canonical links, sitemap and social URLs |
+| `NEXT_PUBLIC_SANITY_PROJECT_ID` | your Sanity project ID | no | Public identifier |
+| `NEXT_PUBLIC_SANITY_DATASET` | `production` | no | |
+| `SANITY_API_READ_TOKEN` | Viewer token from Sanity | **yes** | Optional. Enables the Preview tab. |
+| `SANITY_REVALIDATE_SECRET` | the random value you generated | **yes** | Needed for the publish webhook |
 
-Do **not** add `SANITY_API_WRITE_TOKEN` to Vercel. It is only for the one-off seed on your computer.
-Without `NEXT_PUBLIC_SITE_URL`, canonical and social URLs fall back to Vercel's own address.
+Do **not** add `SANITY_API_WRITE_TOKEN` to Vercel. It is used only for local seeding.
 
-## 2. Build settings
-Vercel detects Next.js automatically. Defaults are correct:
-- Install command: `npm install`
-- Build command: `npm run build`
-- Output: Next.js default (no custom output)
-- Node.js: 20.9 or newer (set in `package.json` → `engines`)
-No `vercel.json` is required.
+Changing a `NEXT_PUBLIC_` variable needs a new deployment, because those values are built into the site. Changing a server-only variable also needs a redeploy.
 
-## 3. Sanity CORS (manage.sanity.io → project 4665zgnk → API → CORS origins)
-- `http://localhost:3000` → **Allow credentials ✔** (needed for local Studio sign-in; currently off)
-- `https://your-domain.com` → **Allow credentials ✔**
-- `https://<your-project>.vercel.app` → **Allow credentials ✔** (Vercel preview URL, optional)
+## 5. Domain
+1. In Vercel: **Settings → Domains** → add your domain.
+2. Follow Vercel's DNS instructions at your domain registrar.
+3. Set `NEXT_PUBLIC_SITE_URL` to the same domain (with `https://`), then redeploy.
+4. Choose one canonical host (with or without `www`) and redirect the other, in Vercel's domain settings.
 
-## 4. Revalidation webhook (after the first deploy)
-manage.sanity.io → API → Webhooks → Create:
+## 6. Sanity production CORS
+In manage.sanity.io → your project → **API → CORS origins**:
+- Add `https://your-domain.com` with **Allow credentials** ticked.
+- Keep `http://localhost:3000` with **Allow credentials** ticked for local Studio use.
+- Add the Vercel preview URL only if you use preview deployments with the Studio.
+
+See CMS_SETUP.md §3.
+
+## 7. Deploy
+Pushing to the production branch (usually `main`) triggers a Vercel production deployment. Watch the build log in Vercel.
+
+If the build fails, the log shows the first error. TROUBLESHOOTING.md lists common causes.
+
+## 8. Revalidation webhook
+After the first successful deployment, create the webhook in Sanity (CMS_SETUP.md §11):
 - URL: `https://your-domain.com/api/revalidate`
-- Trigger: create, update, delete · Method: POST · Projection: `{_type}`
 - Secret: the same value as `SANITY_REVALIDATE_SECRET`
-Without it, published changes appear within about 5 minutes.
+- Trigger: create, update and delete; POST; projection `{_type}`
 
-## 5. Post-deploy checks
-1. Open `/`, `/research`, `/projects/managerlens`, `/studio`.
-2. View the page source: canonical and `og:url` must use your domain.
+## 9. Post-deployment checks
+Run through these on the production domain:
+1. Open `/`, `/about`, `/projects`, `/research`, `/experience`, `/contact` and one project page.
+2. View the page source: `<link rel="canonical">` and `og:url` must use your domain.
 3. Open `/sitemap.xml` and `/robots.txt`.
-4. Download the resume PDF.
-5. Sign in to `/studio`, edit a test item, publish, confirm it appears on the site, then delete the test item.
+4. Download the resume and confirm it opens.
+5. Open `/studio` and sign in with an invited account.
+6. Make a test change to a document (for example a test achievement titled "TEST — delete me"), publish, confirm it appears on the site, then delete the test document.
+7. Confirm `/studio` and `/preview` are not indexed (they carry `noindex`).
+8. Check `/api/revalidate` returns 401 or 405 to an unsigned GET request (it accepts POST only).
 
-## 6. Free-plan notes
-Vercel Hobby and Sanity's free tier cover this site. Confirm current limits on each provider's usage page.
+## 10. Rollback and troubleshooting
+- **Roll back a bad deployment:** in Vercel, open **Deployments**, choose a previous good deployment, and use its menu to promote or restore it. Check the option is available on your plan.
+- **Roll back content:** Sanity's Studio can show earlier versions of a document. *Requires confirmation on your plan:* that this history is available. If it is, restore the earlier version, publish, and check the public page. If it is not, re-enter the text from a copy you keep.
+- **Build or runtime problems:** TROUBLESHOOTING.md → Vercel deployment and Sanity connection.
+- **Environment changes not applied:** redeploy after changing variables.
+
+## 11. Free-plan notes
+Vercel Hobby and Sanity's free plan cover this site's expected use. Limits (bandwidth, build minutes, seats, API requests, webhook deliveries) change over time. Check each provider's usage page before relying on them.
