@@ -25,8 +25,8 @@
     "@sanity/vision": "^6.23.0",
     "next": "16.4.6",
     "next-sanity": "^13.4.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "sanity": "^6.23.0",
     "styled-components": "^6.6.0"
   },
@@ -35,7 +35,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "eslint": "^10.15.0",
     "eslint-config-next": "16.4.6",
     "lexorank": "^1.0.5",
     "tailwindcss": "4.3.3",
@@ -43,6 +43,6 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=24.0.0 <25"
   }
 }
