@@ -1,0 +1,48 @@
+{
+  "name": "naga-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "check:content": "node scripts/check-content.mjs",
+    "check": "npm run check:content && tsc --noEmit && npm run lint && npm run cms:verify && npm run cms:test && npm run seo:test",
+    "cms:seed": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-to-sanity.ts",
+    "cms:verify": "node --import tsx scripts/verify-cms.ts",
+    "cms:doctor": "node --env-file-if-exists=.env.local --import tsx scripts/check-sanity-config.ts",
+    "cms:test": "node --import tsx scripts/test-seed.ts",
+    "seo:test": "node --import tsx scripts/test-site-url.ts"
+  },
+  "dependencies": {
+    "@portabletext/react": "^8.0.1",
+    "@portabletext/types": "^4.0.2",
+    "@sanity/icons": "^5.3.0",
+    "@sanity/image-url": "^2.1.1",
+    "@sanity/orderable-document-list": "^2.0.29",
+    "@sanity/ui": "^4.4.12",
+    "@sanity/vision": "^6.23.0",
+    "next": "16.4.6",
+    "next-sanity": "^13.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sanity": "^6.23.0",
+    "styled-components": "^6.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "lexorank": "^1.0.5",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
